@@ -15,3 +15,7 @@ export const env = envSchema.parse({
   SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
   WHATSAPP_PROVIDER: process.env.WHATSAPP_PROVIDER
 });
+
+export function hasSupabaseConfig() {
+  return Boolean(env.NEXT_PUBLIC_SUPABASE_URL && env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+}

@@ -1,17 +1,19 @@
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
-import { env } from "@/lib/env";
+import { env, hasSupabaseConfig } from "@/lib/env";
 
 export async function createSupabaseServerClient() {
-  if (!env.NEXT_PUBLIC_SUPABASE_URL || !env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  if (!hasSupabaseConfig()) {
     throw new Error("Supabase public environment variables are not configured.");
   }
 
+  const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseAnonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
   const cookieStore = await cookies();
 
   return createServerClient(
-    env.NEXT_PUBLIC_SUPABASE_URL,
-    env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         getAll() {

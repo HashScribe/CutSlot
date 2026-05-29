@@ -10,3 +10,6 @@ coverage
 .env.production.local
 *.tsbuildinfo
 cutslot_plan_render
+supabase/.temp
+supabase/.branches
+supabase/snippets

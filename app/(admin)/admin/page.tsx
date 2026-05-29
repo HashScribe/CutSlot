@@ -2,15 +2,27 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TenantOverview } from "@/modules/tenants/components/tenant-overview";
+import { requireCurrentUser } from "@/modules/auth/lib/session";
+import { hasSupabaseConfig } from "@/lib/env";
+import { getActiveTenantForUser } from "@/modules/tenants/lib/queries";
 
-export default function AdminDashboardPage() {
+export default async function AdminDashboardPage() {
+  const tenant =
+    hasSupabaseConfig()
+      ? await getActiveTenantForUser((await requireCurrentUser()).id)
+      : null;
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Dashboard"
-        description="Your salon command center for today’s appointments, setup progress, and booking health."
+        description={
+          tenant
+            ? `Your salon command center for ${tenant.name}.`
+            : "Your salon command center for today’s appointments, setup progress, and booking health."
+        }
       />
-      <TenantOverview />
+      <TenantOverview tenantName={tenant?.name} tenantRole={tenant?.role} />
       <div className="grid gap-4 md:grid-cols-3">
         {[
           ["Today’s bookings", "0", "Connect Supabase and create your first booking."],

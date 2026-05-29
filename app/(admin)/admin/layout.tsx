@@ -2,6 +2,11 @@ import Link from "next/link";
 import { CalendarDays, LayoutDashboard, Scissors, Settings, Sparkles, Users } from "lucide-react";
 import { AppLogo } from "@/components/shared/app-logo";
 import { Button } from "@/components/ui/button";
+import { hasSupabaseConfig } from "@/lib/env";
+import { SignOutButton } from "@/modules/auth/components/sign-out-button";
+import { requireCurrentUser } from "@/modules/auth/lib/session";
+import { NoTenantState } from "@/modules/tenants/components/no-tenant-state";
+import { requireActiveTenant } from "@/modules/tenants/lib/queries";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -12,7 +17,19 @@ const navItems = [
   { href: "/admin/settings", label: "Settings", icon: Settings }
 ] as const;
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  let tenantName = "CutSlot";
+  let tenantRole = "setup";
+  let hasTenant = false;
+
+  if (hasSupabaseConfig()) {
+    const user = await requireCurrentUser();
+    const tenant = await requireActiveTenant(user.id);
+    hasTenant = Boolean(tenant);
+    tenantName = tenant?.name ?? "No tenant";
+    tenantRole = tenant?.role ?? "missing";
+  }
+
   return (
     <div className="dark min-h-screen bg-background text-foreground">
       <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-border bg-card/80 p-5 lg:block">
@@ -36,11 +53,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <AppLogo />
           </div>
           <div className="hidden lg:block">
-            <p className="text-sm text-muted-foreground">Premium booking operations</p>
+            <p className="text-sm font-medium">{tenantName}</p>
+            <p className="text-xs text-muted-foreground">Role: {tenantRole}</p>
           </div>
-          <Button size="sm">New booking</Button>
+          <div className="flex items-center gap-2">
+            <Button size="sm">New booking</Button>
+            {hasSupabaseConfig() ? <SignOutButton /> : null}
+          </div>
         </header>
-        <main className="mx-auto w-full max-w-7xl px-4 py-6 md:px-8">{children}</main>
+        <main className="mx-auto w-full max-w-7xl px-4 py-6 md:px-8">
+          {hasSupabaseConfig() && !hasTenant ? <NoTenantState /> : children}
+        </main>
       </div>
     </div>
   );
