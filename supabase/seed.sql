@@ -125,3 +125,109 @@ values (
   'owner'
 )
 on conflict (tenant_id, user_id) do update set role = excluded.role;
+
+insert into public.services (
+  id,
+  tenant_id,
+  salon_id,
+  name,
+  description,
+  duration_minutes,
+  buffer_minutes,
+  price_cents,
+  is_active
+)
+values
+  (
+    '00000000-0000-0000-0000-000000000201',
+    '00000000-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000101',
+    'Signature Haircut',
+    'Consultation, wash, cut, and finish.',
+    45,
+    10,
+    450000,
+    true
+  ),
+  (
+    '00000000-0000-0000-0000-000000000202',
+    '00000000-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000101',
+    'Color Touch-up',
+    'Root color refresh with blow dry.',
+    90,
+    15,
+    1250000,
+    true
+  )
+on conflict (id) do update set
+  name = excluded.name,
+  description = excluded.description,
+  duration_minutes = excluded.duration_minutes,
+  buffer_minutes = excluded.buffer_minutes,
+  price_cents = excluded.price_cents,
+  is_active = excluded.is_active;
+
+insert into public.staff (
+  id,
+  tenant_id,
+  salon_id,
+  display_name,
+  phone,
+  is_active
+)
+values
+  (
+    '00000000-0000-0000-0000-000000000301',
+    '00000000-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000101',
+    'Amani Perera',
+    '+94771111111',
+    true
+  ),
+  (
+    '00000000-0000-0000-0000-000000000302',
+    '00000000-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000101',
+    'Nisha Fernando',
+    '+94772222222',
+    true
+  )
+on conflict (id) do update set
+  display_name = excluded.display_name,
+  phone = excluded.phone,
+  is_active = excluded.is_active;
+
+insert into public.staff_services (tenant_id, staff_id, service_id)
+values
+  (
+    '00000000-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000301',
+    '00000000-0000-0000-0000-000000000201'
+  ),
+  (
+    '00000000-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000301',
+    '00000000-0000-0000-0000-000000000202'
+  ),
+  (
+    '00000000-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000302',
+    '00000000-0000-0000-0000-000000000201'
+  )
+on conflict (staff_id, service_id) do nothing;
+
+insert into public.working_hours (
+  tenant_id,
+  salon_id,
+  weekday,
+  start_time,
+  end_time,
+  is_active
+)
+values
+  ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000101', 1, '09:00', '17:00', true),
+  ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000101', 2, '09:00', '17:00', true),
+  ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000101', 3, '09:00', '17:00', true),
+  ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000101', 4, '09:00', '17:00', true),
+  ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000101', 5, '09:00', '17:00', true);
