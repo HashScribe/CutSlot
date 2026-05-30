@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { createStaffAction, deleteStaffAction, updateStaffAction } from "@/modules/staff/lib/actions";
 import type { StaffMember, StaffService } from "@/modules/staff/lib/types";
 import type { Service } from "@/modules/services/lib/types";
+import type { WorkingHour } from "@/modules/salons/lib/working-hours";
+import { StaffWorkingHoursForm } from "@/modules/staff/components/staff-working-hours-form";
 
 function assignedServiceIds(staffId: string, assignments: StaffService[]) {
   return new Set(assignments.filter((item) => item.staffId === staffId).map((item) => item.serviceId));
@@ -41,13 +43,17 @@ function ServiceCheckboxes({
 }
 
 export function StaffSetupPanel({
+  salonId,
   staff,
   services,
-  assignments
+  assignments,
+  staffWorkingHours
 }: {
+  salonId: string;
   staff: StaffMember[];
   services: Service[];
   assignments: StaffService[];
+  staffWorkingHours: WorkingHour[];
 }) {
   return (
     <div className="grid gap-5 lg:grid-cols-[380px_1fr]">
@@ -136,6 +142,15 @@ export function StaffSetupPanel({
           );
         })}
       </div>
+
+      <Card className="lg:col-span-2">
+        <CardHeader>
+          <CardTitle>Staff working hours</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <StaffWorkingHoursForm salonId={salonId} staff={staff} workingHours={staffWorkingHours} />
+        </CardContent>
+      </Card>
     </div>
   );
 }

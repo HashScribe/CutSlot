@@ -50,3 +50,30 @@ export const listWorkingHoursForSalon = cache(async (tenantId: string, salonId: 
     isActive: row.is_active
   }));
 });
+
+export const listStaffWorkingHoursForSalon = cache(async (tenantId: string, salonId: string) => {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("working_hours")
+    .select("id, tenant_id, salon_id, staff_id, weekday, start_time, end_time, is_active")
+    .eq("tenant_id", tenantId)
+    .eq("salon_id", salonId)
+    .not("staff_id", "is", null)
+    .order("weekday", { ascending: true })
+    .order("start_time", { ascending: true });
+
+  if (error || !data) {
+    return [];
+  }
+
+  return (data as WorkingHourRow[]).map((row) => ({
+    id: row.id,
+    tenantId: row.tenant_id,
+    salonId: row.salon_id,
+    staffId: row.staff_id,
+    weekday: row.weekday,
+    startTime: row.start_time,
+    endTime: row.end_time,
+    isActive: row.is_active
+  }));
+});

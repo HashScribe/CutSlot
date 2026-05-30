@@ -28,6 +28,21 @@ const workingHourSchema = z.object({
   path: ["endTime"]
 });
 
+const blockedTimeSchema = z.object({
+  salonId: databaseUuidSchema,
+  staffId: databaseUuidSchema.optional(),
+  startsAt: z.string().min(1),
+  endsAt: z.string().min(1),
+  reason: z.string().max(240).optional()
+}).transform((value) => ({
+  ...value,
+  startsAt: new Date(value.startsAt),
+  endsAt: new Date(value.endsAt)
+})).refine((value) => value.startsAt < value.endsAt, {
+  message: "End time must be after start time.",
+  path: ["endsAt"]
+});
+
 export type WorkingHourActionState = {
   error?: string;
   success?: string;
@@ -157,6 +172,53 @@ export async function deleteWorkingHourAction(formData: FormData) {
     .delete()
     .eq("tenant_id", context.tenant.id)
     .eq("id", workingHourId);
+
+  revalidatePath("/admin/settings");
+}
+
+export async function createBlockedTimeAction(formData: FormData) {
+  const context = await getAdminTenantContext();
+  if (!context) return;
+
+  const parsed = blockedTimeSchema.safeParse({
+    salonId: formData.get("salonId"),
+    staffId: String(formData.get("staffId") ?? "").trim() || undefined,
+    startsAt: formData.get("startsAt"),
+    endsAt: formData.get("endsAt"),
+    reason: String(formData.get("reason") ?? "").trim() || undefined
+  });
+
+  if (!parsed.success) {
+    return;
+  }
+
+  const payload = parsed.data;
+  const supabase = await createSupabaseServerClient();
+
+  await supabase.from("blocked_times").insert({
+    tenant_id: context.tenant.id,
+    salon_id: payload.salonId,
+    staff_id: payload.staffId ?? null,
+    starts_at: payload.startsAt.toISOString(),
+    ends_at: payload.endsAt.toISOString(),
+    reason: payload.reason ?? null
+  });
+
+  revalidatePath("/admin/settings");
+}
+
+export async function deleteBlockedTimeAction(formData: FormData) {
+  const context = await getAdminTenantContext();
+  if (!context) return;
+
+  const blockedTimeId = String(formData.get("blockedTimeId") ?? "");
+  const supabase = await createSupabaseServerClient();
+
+  await supabase
+    .from("blocked_times")
+    .delete()
+    .eq("tenant_id", context.tenant.id)
+    .eq("id", blockedTimeId);
 
   revalidatePath("/admin/settings");
 }
