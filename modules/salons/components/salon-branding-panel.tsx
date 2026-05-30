@@ -1,13 +1,14 @@
 import Link from "next/link";
-import { Clock, Palette, Trash2 } from "lucide-react";
+import { Clock, Palette } from "lucide-react";
 import { SubmitButton } from "@/components/shared/submit-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { Salon } from "@/modules/salons/lib/types";
-import { createWorkingHourAction, deleteWorkingHourAction, updateSalonAction } from "@/modules/salons/lib/actions";
-import { type WorkingHour, weekdays } from "@/modules/salons/lib/working-hours";
+import { updateSalonAction } from "@/modules/salons/lib/actions";
+import { type WorkingHour } from "@/modules/salons/lib/working-hours";
+import { WorkingHoursForm } from "@/modules/salons/components/working-hours-form";
 
 export function SalonBrandingPanel({
   salon,
@@ -93,6 +94,22 @@ export function SalonBrandingPanel({
                 <option value="dark">Dark</option>
               </select>
             </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="slot-interval">Slot interval</label>
+              <select
+                className="h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                defaultValue={salon.slotIntervalMinutes}
+                id="slot-interval"
+                name="slotIntervalMinutes"
+              >
+                {[5, 10, 15, 20, 30, 45, 60].map((minutes) => (
+                  <option key={minutes} value={minutes}>
+                    Every {minutes} minutes
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground">Availability slots will be generated using this interval.</p>
+            </div>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <Button variant="outline" type="button">
                 <Link href={`/${salon.slug}`}>View public page</Link>
@@ -111,45 +128,7 @@ export function SalonBrandingPanel({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <form action={createWorkingHourAction} className="grid gap-3">
-            <input name="salonId" type="hidden" value={salon.id} />
-            <select
-              className="h-10 rounded-md border border-input bg-transparent px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              name="weekday"
-              defaultValue="1"
-            >
-              {weekdays.map((day, index) => (
-                <option key={day} value={index}>{day}</option>
-              ))}
-            </select>
-            <div className="grid grid-cols-2 gap-3">
-              <Input aria-label="Start time" name="startTime" type="time" defaultValue="09:00" required />
-              <Input aria-label="End time" name="endTime" type="time" defaultValue="17:00" required />
-            </div>
-            <SubmitButton>Create hours</SubmitButton>
-          </form>
-
-          <div className="space-y-2">
-            {workingHours.length === 0 ? (
-              <p className="rounded-md border border-dashed border-border p-4 text-sm text-muted-foreground">
-                No salon working hours yet.
-              </p>
-            ) : null}
-            {workingHours.map((item) => (
-              <div key={item.id} className="flex items-center justify-between gap-3 rounded-md border border-border bg-secondary/20 p-3">
-                <div>
-                  <p className="text-sm font-medium">{weekdays[item.weekday]}</p>
-                  <p className="text-sm text-muted-foreground">{item.startTime.slice(0, 5)} - {item.endTime.slice(0, 5)}</p>
-                </div>
-                <form action={deleteWorkingHourAction}>
-                  <input name="workingHourId" type="hidden" value={item.id} />
-                  <SubmitButton pendingLabel="..." size="icon" variant="ghost">
-                    <Trash2 className="h-4 w-4" aria-hidden="true" />
-                  </SubmitButton>
-                </form>
-              </div>
-            ))}
-          </div>
+          <WorkingHoursForm salonId={salon.id} workingHours={workingHours} />
         </CardContent>
       </Card>
     </div>

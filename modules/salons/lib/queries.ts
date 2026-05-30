@@ -13,6 +13,7 @@ type SalonRow = {
   logo_url: string | null;
   accent_color: string;
   theme_mode: "light" | "dark";
+  slot_interval_minutes: number;
 };
 
 export const getPrimarySalonForTenant = cache(async (tenantId: string): Promise<Salon | null> => {
@@ -23,7 +24,7 @@ export const getPrimarySalonForTenant = cache(async (tenantId: string): Promise<
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("salons")
-    .select("id, tenant_id, name, slug, phone, address, logo_url, accent_color, theme_mode")
+    .select("id, tenant_id, name, slug, phone, address, logo_url, accent_color, theme_mode, slot_interval_minutes")
     .eq("tenant_id", tenantId)
     .order("created_at", { ascending: true })
     .limit(1)
@@ -44,7 +45,8 @@ export const getPrimarySalonForTenant = cache(async (tenantId: string): Promise<
     address: row.address,
     logoUrl: row.logo_url,
     accentColor: row.accent_color,
-    themeMode: row.theme_mode
+    themeMode: row.theme_mode,
+    slotIntervalMinutes: row.slot_interval_minutes
   };
 });
 
@@ -56,7 +58,7 @@ export const getSalonBySlug = cache(async (slug: string): Promise<Salon | null> 
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("salons")
-    .select("id, tenant_id, name, slug, phone, address, logo_url, accent_color, theme_mode")
+    .select("id, tenant_id, name, slug, phone, address, logo_url, accent_color, theme_mode, slot_interval_minutes")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -75,6 +77,7 @@ export const getSalonBySlug = cache(async (slug: string): Promise<Salon | null> 
     address: row.address,
     logoUrl: row.logo_url,
     accentColor: row.accent_color,
-    themeMode: row.theme_mode
+    themeMode: row.theme_mode,
+    slotIntervalMinutes: row.slot_interval_minutes
   };
 });

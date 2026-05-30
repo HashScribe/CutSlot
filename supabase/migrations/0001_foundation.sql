@@ -56,6 +56,7 @@ create table public.salons (
   logo_url text,
   accent_color text not null default '#C8A97E',
   theme_mode text not null default 'light' check (theme_mode in ('light', 'dark')),
+  slot_interval_minutes integer not null default 15 check (slot_interval_minutes in (5, 10, 15, 20, 30, 45, 60)),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -103,6 +104,14 @@ create table public.working_hours (
   is_active boolean not null default true,
   check (start_time < end_time)
 );
+
+create unique index working_hours_one_salon_day_idx
+on public.working_hours (tenant_id, salon_id, weekday)
+where staff_id is null;
+
+create unique index working_hours_one_staff_day_idx
+on public.working_hours (tenant_id, salon_id, staff_id, weekday)
+where staff_id is not null;
 
 create table public.blocked_times (
   id uuid primary key default gen_random_uuid(),

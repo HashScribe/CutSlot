@@ -99,7 +99,8 @@ insert into public.salons (
   phone,
   address,
   accent_color,
-  theme_mode
+  theme_mode,
+  slot_interval_minutes
 )
 values (
   '00000000-0000-0000-0000-000000000101',
@@ -109,14 +110,16 @@ values (
   '+94770000000',
   'Colombo, Sri Lanka',
   '#C8A97E',
-  'light'
+  'light',
+  15
 )
 on conflict (slug) do update set
   name = excluded.name,
   phone = excluded.phone,
   address = excluded.address,
   accent_color = excluded.accent_color,
-  theme_mode = excluded.theme_mode;
+  theme_mode = excluded.theme_mode,
+  slot_interval_minutes = excluded.slot_interval_minutes;
 
 insert into public.tenant_users (tenant_id, user_id, role)
 values (
@@ -218,6 +221,7 @@ values
 on conflict (staff_id, service_id) do nothing;
 
 insert into public.working_hours (
+  id,
   tenant_id,
   salon_id,
   weekday,
@@ -226,8 +230,12 @@ insert into public.working_hours (
   is_active
 )
 values
-  ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000101', 1, '09:00', '17:00', true),
-  ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000101', 2, '09:00', '17:00', true),
-  ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000101', 3, '09:00', '17:00', true),
-  ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000101', 4, '09:00', '17:00', true),
-  ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000101', 5, '09:00', '17:00', true);
+  ('00000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000101', 1, '09:00', '17:00', true),
+  ('00000000-0000-0000-0000-000000000402', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000101', 2, '09:00', '17:00', true),
+  ('00000000-0000-0000-0000-000000000403', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000101', 3, '09:00', '17:00', true),
+  ('00000000-0000-0000-0000-000000000404', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000101', 4, '09:00', '17:00', true),
+  ('00000000-0000-0000-0000-000000000405', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000101', 5, '09:00', '17:00', true)
+on conflict (id) do update set
+  start_time = excluded.start_time,
+  end_time = excluded.end_time,
+  is_active = excluded.is_active;

@@ -1,15 +1,6 @@
 import { cache } from "react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-
-export const weekdays = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday"
-] as const;
+export { weekdays } from "./weekdays";
 
 export type WorkingHour = {
   id: string;

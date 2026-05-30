@@ -8,6 +8,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "next lint",
+    "test:availability": "tsx --test modules/availability/lib/slot-generator.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -35,6 +36,7 @@
     "postcss": "latest",
     "supabase": "^2.101.0",
     "tailwindcss": "latest",
+    "tsx": "^4.22.3",
     "typescript": "latest"
   }
 }

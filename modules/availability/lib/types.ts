@@ -4,7 +4,6 @@ export type TimeWindow = {
 };
 
 export type GenerateSlotsInput = {
-  date: Date;
   workingWindows: TimeWindow[];
   blockedWindows: TimeWindow[];
   existingBookings: TimeWindow[];
@@ -16,4 +15,11 @@ export type GenerateSlotsInput = {
 export type AvailabilitySlot = {
   start: Date;
   end: Date;
+  staffId?: string;
+};
+
+export type StaffAvailability = {
+  staffId: string;
+  staffName: string;
+  slots: AvailabilitySlot[];
 };

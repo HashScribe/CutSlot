@@ -10,4 +10,5 @@ export type Salon = {
   logoUrl?: string | null;
   accentColor: string;
   themeMode: SalonThemeMode;
+  slotIntervalMinutes: number;
 };
