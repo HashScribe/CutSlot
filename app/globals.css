@@ -76,3 +76,60 @@ body {
   background: hsl(var(--background));
   color: hsl(var(--foreground));
 }
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes soft-pulse {
+  0%, 100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 700ms ease both;
+}
+
+.animate-fade-up-delay-1 {
+  animation: fade-up 700ms ease 90ms both;
+}
+
+.animate-fade-up-delay-2 {
+  animation: fade-up 700ms ease 180ms both;
+}
+
+.animate-fade-up-delay-3 {
+  animation: fade-up 700ms ease 270ms both;
+}
+
+.animate-soft-pulse {
+  animation: soft-pulse 3s ease-in-out infinite;
+}
+
+.tenant-accent-scope .tenant-field {
+  border-color: color-mix(in srgb, var(--tenant-accent) 28%, rgb(45 49 57));
+  caret-color: var(--tenant-accent);
+}
+
+.tenant-accent-scope .tenant-field:focus,
+.tenant-accent-scope .tenant-field:focus-visible {
+  border-color: var(--tenant-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--tenant-accent) 42%, transparent);
+  outline: none;
+}
+
+.tenant-accent-scope .tenant-option:focus-visible {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--tenant-accent) 42%, transparent);
+  outline: none;
+}

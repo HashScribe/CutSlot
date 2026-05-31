@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSalonBySlug } from "@/modules/salons/lib/queries";
 import { generateAvailabilitySlots } from "./slot-generator";
@@ -44,6 +45,14 @@ function rowToWindow(row: WindowRow): TimeWindow {
   };
 }
 
+async function createAvailabilityClient() {
+  try {
+    return createSupabaseAdminClient();
+  } catch {
+    return createSupabaseServerClient();
+  }
+}
+
 export const getAvailabilityForSalon = cache(
   async ({
     salonSlug,
@@ -59,7 +68,7 @@ export const getAvailabilityForSalon = cache(
     const salon = await getSalonBySlug(salonSlug);
     if (!salon) return [];
 
-    const supabase = await createSupabaseServerClient();
+    const supabase = await createAvailabilityClient();
     const { data: serviceData } = await supabase
       .from("services")
       .select("id, tenant_id, salon_id, duration_minutes, buffer_minutes, is_active")

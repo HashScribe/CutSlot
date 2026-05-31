@@ -24,6 +24,14 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
 ```
 
+For local Supabase, get these with:
+
+```bash
+supabase status
+```
+
+`SUPABASE_SERVICE_ROLE_KEY` is required for public booking creation. Keep it server-only and never expose it with a `NEXT_PUBLIC_` prefix.
+
 4. Reset the local Supabase database:
 
 ```bash

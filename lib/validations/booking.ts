@@ -4,7 +4,7 @@ import { databaseUuidSchema } from "@/lib/validations/uuid";
 export const createBookingSchema = z.object({
   salonId: databaseUuidSchema,
   serviceId: databaseUuidSchema,
-  staffId: databaseUuidSchema.optional(),
+  staffId: databaseUuidSchema,
   startTime: z.string().datetime(),
   customerName: z.string().min(2).max(120),
   customerPhone: z.string().min(6).max(32),

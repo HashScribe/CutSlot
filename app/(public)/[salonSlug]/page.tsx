@@ -1,7 +1,9 @@
-import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
+import { PublicFooter } from "@/modules/salons/components/public-footer";
+import { PublicNav } from "@/modules/salons/components/public-nav";
 import { PublicSalonHero } from "@/modules/salons/components/public-salon-hero";
 import { getSalonBySlug } from "@/modules/salons/lib/queries";
+import { PublicServicesList } from "@/modules/services/components/public-services-list";
+import { listActiveServicesForSalon } from "@/modules/services/lib/queries";
 
 export default async function PublicSalonPage({
   params
@@ -11,25 +13,38 @@ export default async function PublicSalonPage({
   const { salonSlug } = await params;
   const salon = await getSalonBySlug(salonSlug);
   const accentColor = salon?.accentColor ?? "#C8A97E";
-  const isDark = salon?.themeMode === "dark";
+  const services = salon ? await listActiveServicesForSalon(salon.tenantId, salon.id) : [];
 
   return (
-    <main className={isDark ? "min-h-screen bg-[#0F1115] text-[#F5F7FA]" : "min-h-screen bg-[#FAF7F2] text-[#111827]"}>
-      <PublicSalonHero
+    <main className="dark min-h-screen bg-[#0F1115] text-[#F5F7FA]">
+      <PublicNav
         accentColor={accentColor}
         logoUrl={salon?.logoUrl}
         salonName={salon?.name ?? salonSlug}
         salonSlug={salonSlug}
       />
-      <section className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 pb-12 md:flex-row">
-        <Link
-          className={buttonVariants({ className: "text-white hover:opacity-90" })}
-          href={`/${salonSlug}/book`}
-          style={{ backgroundColor: accentColor }}
-        >
-          Book appointment
-        </Link>
-      </section>
+      <PublicSalonHero
+        address={salon?.address}
+        accentColor={accentColor}
+        logoUrl={salon?.logoUrl}
+        salonName={salon?.name ?? salonSlug}
+        salonSlug={salonSlug}
+        serviceCount={services.length}
+      />
+      <PublicServicesList
+        accentColor={accentColor}
+        salonSlug={salonSlug}
+        services={services.slice(0, 4)}
+        showAllServicesLink
+      />
+      <PublicFooter
+        accentColor={accentColor}
+        address={salon?.address}
+        logoUrl={salon?.logoUrl}
+        phone={salon?.phone}
+        salonName={salon?.name ?? salonSlug}
+        salonSlug={salonSlug}
+      />
     </main>
   );
 }
