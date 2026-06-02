@@ -14,6 +14,15 @@ export type Booking = {
   createdAt: string;
 };
 
+export type BookingWithDetails = Booking & {
+  customerName: string;
+  customerPhone: string;
+  serviceName: string;
+  serviceDurationMinutes: number;
+  serviceBufferMinutes: number;
+  staffName: string;
+};
+
 export type Customer = {
   id: string;
   tenantId: string;

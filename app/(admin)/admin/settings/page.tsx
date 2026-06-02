@@ -1,4 +1,6 @@
 import { PageHeader } from "@/components/shared/page-header";
+import { NotificationSettingsPanel } from "@/modules/notifications/components/notification-settings-panel";
+import { getNotificationSettingsForTenant, listNotificationLogsForTenant } from "@/modules/notifications/lib/queries";
 import { NoSalonState } from "@/modules/salons/components/no-salon-state";
 import { BlockedTimesPanel } from "@/modules/salons/components/blocked-times-panel";
 import { SalonBrandingPanel } from "@/modules/salons/components/salon-branding-panel";
@@ -11,14 +13,16 @@ import { getAdminTenantContext } from "@/modules/tenants/lib/context";
 export default async function SettingsPage() {
   const context = await getAdminTenantContext();
   const salon = context ? await getPrimarySalonForTenant(context.tenant.id) : null;
-  const [workingHours, blockedTimes, staff] =
+  const [workingHours, blockedTimes, staff, notificationData, notificationLogs] =
     context && salon
       ? await Promise.all([
           listWorkingHoursForSalon(context.tenant.id, salon.id),
           listBlockedTimesForSalon(context.tenant.id, salon.id),
-          listStaffForSalon(context.tenant.id, salon.id)
+          listStaffForSalon(context.tenant.id, salon.id),
+          getNotificationSettingsForTenant(context.tenant.id),
+          listNotificationLogsForTenant(context.tenant.id)
         ])
-      : [[], [], []];
+      : [[], [], [], null, []];
 
   return (
     <div className="space-y-6">
@@ -27,6 +31,13 @@ export default async function SettingsPage() {
         <>
           <SalonBrandingPanel salon={salon} workingHours={workingHours} />
           <BlockedTimesPanel salonId={salon.id} staff={staff} blockedTimes={blockedTimes} />
+          {notificationData ? (
+            <NotificationSettingsPanel
+              logs={notificationLogs}
+              notificationSettings={notificationData.notificationSettings}
+              whatsappSettings={notificationData.whatsappSettings}
+            />
+          ) : null}
         </>
       ) : <NoSalonState />}
     </div>

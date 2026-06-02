@@ -32,6 +32,22 @@ supabase status
 
 `SUPABASE_SERVICE_ROLE_KEY` is required for public booking creation. Keep it server-only and never expose it with a `NEXT_PUBLIC_` prefix.
 
+Optional WhatsApp notification variables:
+
+```bash
+WHATSAPP_PROVIDER=disabled # disabled | twilio | meta
+
+# Twilio WhatsApp
+TWILIO_ACCOUNT_SID=...
+TWILIO_AUTH_TOKEN=...
+
+# Meta WhatsApp
+META_WHATSAPP_ACCESS_TOKEN=...
+META_WHATSAPP_PHONE_NUMBER_ID=...
+```
+
+WhatsApp can be enabled from `/admin/settings`. When it is disabled or not configured, booking notification events are logged as skipped instead of blocking booking operations.
+
 4. Reset the local Supabase database:
 
 ```bash

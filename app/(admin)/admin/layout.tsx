@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { CalendarDays, LayoutDashboard, Scissors, Settings, Sparkles, Users } from "lucide-react";
+import { CalendarDays, LayoutDashboard, Scissors, Settings, Sparkles, UserRound, Users } from "lucide-react";
 import { AppLogo } from "@/components/shared/app-logo";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { hasSupabaseConfig } from "@/lib/env";
 import { SignOutButton } from "@/modules/auth/components/sign-out-button";
 import { requireCurrentUser } from "@/modules/auth/lib/session";
@@ -12,6 +12,7 @@ const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/calendar", label: "Calendar", icon: CalendarDays },
   { href: "/admin/bookings", label: "Bookings", icon: Sparkles },
+  { href: "/admin/customers", label: "Customers", icon: UserRound },
   { href: "/admin/services", label: "Services", icon: Scissors },
   { href: "/admin/staff", label: "Staff", icon: Users },
   { href: "/admin/settings", label: "Settings", icon: Settings }
@@ -57,7 +58,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <p className="text-xs text-muted-foreground">Role: {tenantRole}</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button size="sm">New booking</Button>
+            <Link className={buttonVariants({ size: "sm" })} href="/admin/bookings#new-booking">
+              New booking
+            </Link>
             {hasSupabaseConfig() ? <SignOutButton /> : null}
           </div>
         </header>
