@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminManualBookingForm } from "@/modules/bookings/components/admin-manual-booking-form";
 import { BookingRescheduleForm } from "@/modules/bookings/components/booking-reschedule-form";
 import { BookingStatusActions } from "@/modules/bookings/components/booking-status-actions";
+import type { BookingPolicy } from "@/modules/bookings/lib/booking-policy";
 import type { BookingStatus, BookingWithDetails } from "@/modules/bookings/lib/types";
 import type { Service } from "@/modules/services/lib/types";
 import type { StaffMember, StaffService } from "@/modules/staff/lib/types";
@@ -30,6 +31,7 @@ function statusLabel(status: BookingStatus) {
 export function AdminBookingsPanel({
   assignments,
   bookings,
+  bookingPolicy,
   salonId,
   salonSlug,
   services,
@@ -37,6 +39,7 @@ export function AdminBookingsPanel({
 }: {
   assignments: StaffService[];
   bookings: BookingWithDetails[];
+  bookingPolicy: BookingPolicy;
   salonId: string;
   salonSlug: string;
   services: Service[];
@@ -49,6 +52,7 @@ export function AdminBookingsPanel({
       {hasSetup ? (
         <AdminManualBookingForm
           assignments={assignments}
+          bookingPolicy={bookingPolicy}
           salonId={salonId}
           salonSlug={salonSlug}
           services={services}
@@ -120,7 +124,7 @@ export function AdminBookingsPanel({
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <BookingStatusActions bookingId={booking.id} status={booking.status} />
               </div>
-              <BookingRescheduleForm booking={booking} salonSlug={salonSlug} />
+              <BookingRescheduleForm booking={booking} bookingPolicy={bookingPolicy} salonSlug={salonSlug} />
             </CardContent>
           </Card>
         ))}

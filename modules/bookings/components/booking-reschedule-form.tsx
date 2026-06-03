@@ -1,10 +1,15 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import { Check, RotateCcw } from "lucide-react";
 import { SubmitButton } from "@/components/shared/submit-button";
 import { Input } from "@/components/ui/input";
 import { rescheduleBookingAction } from "@/modules/bookings/lib/actions";
+import {
+  getBookingDateBounds,
+  validateBookingDateAgainstPolicy,
+  type BookingPolicy
+} from "@/modules/bookings/lib/booking-policy";
 import type { BookingWithDetails } from "@/modules/bookings/lib/types";
 
 type AvailabilityResponse = {
@@ -23,33 +28,70 @@ function dateValue(value: string) {
   return value.slice(0, 10);
 }
 
-function todayDateValue() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function formatTime(value: string) {
+function formatTime(value: string, timezone: string) {
   return new Intl.DateTimeFormat("en", {
     hour: "numeric",
-    minute: "2-digit"
+    minute: "2-digit",
+    timeZone: timezone
   }).format(new Date(value));
 }
 
 export function BookingRescheduleForm({
   booking,
+  bookingPolicy,
   salonSlug
 }: {
   booking: BookingWithDetails;
+  bookingPolicy: BookingPolicy;
   salonSlug: string;
 }) {
-  const [selectedDate, setSelectedDate] = useState(dateValue(booking.startTime));
+  const dateBounds = useMemo(
+    () => getBookingDateBounds(bookingPolicy),
+    [bookingPolicy]
+  );
+  const dateInputMax =
+    dateBounds.maxDate && dateBounds.maxDate >= dateBounds.minDate
+      ? dateBounds.maxDate
+      : dateBounds.minDate;
+  const initialDate = dateValue(booking.startTime);
+  const [selectedDate, setSelectedDate] = useState(
+    initialDate < dateBounds.minDate ? dateBounds.minDate : initialDate
+  );
   const [selectedSlot, setSelectedSlot] = useState<string>("");
   const [availability, setAvailability] = useState<AvailabilityResponse["availability"]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [state, formAction] = useActionState(rescheduleBookingAction, {});
+  const selectedDatePolicy = useMemo(
+    () =>
+      validateBookingDateAgainstPolicy({
+        date: selectedDate,
+        policy: bookingPolicy
+      }),
+    [bookingPolicy, selectedDate]
+  );
+
+  useEffect(() => {
+    setSelectedDate((currentDate) => {
+      if (currentDate < dateBounds.minDate) return dateBounds.minDate;
+      if (dateBounds.maxDate && currentDate > dateBounds.maxDate) {
+        return dateBounds.maxDate < dateBounds.minDate
+          ? dateBounds.minDate
+          : dateBounds.maxDate;
+      }
+      return currentDate;
+    });
+  }, [dateBounds.maxDate, dateBounds.minDate]);
 
   useEffect(() => {
     if (!isOpen) return;
+
+    if (!selectedDatePolicy.ok) {
+      setAvailability([]);
+      setSelectedSlot("");
+      setIsLoadingSlots(false);
+      return;
+    }
 
     const controller = new AbortController();
     const params = new URLSearchParams({
@@ -74,7 +116,7 @@ export function BookingRescheduleForm({
       .finally(() => setIsLoadingSlots(false));
 
     return () => controller.abort();
-  }, [booking.serviceId, booking.staffId, isOpen, salonSlug, selectedDate]);
+  }, [booking.serviceId, booking.staffId, isOpen, salonSlug, selectedDate, selectedDatePolicy.ok]);
 
   const slots = availability.flatMap((item) => item.slots);
 
@@ -107,18 +149,25 @@ export function BookingRescheduleForm({
             </label>
             <Input
               id={`reschedule-${booking.id}-date`}
-              min={todayDateValue()}
+              max={dateInputMax}
+              min={dateBounds.minDate}
               type="date"
               value={selectedDate}
-              onChange={(event) => setSelectedDate(event.target.value)}
+              onChange={(event) => {
+                setSelectedDate(event.target.value);
+                setSelectedSlot("");
+              }}
             />
           </div>
 
           {isLoadingSlots ? <p className="text-sm text-muted-foreground">Loading slots...</p> : null}
-          {!isLoadingSlots && slots.length === 0 ? (
+          {!isLoadingSlots && !selectedDatePolicy.ok ? (
+            <p className="text-sm text-muted-foreground">{selectedDatePolicy.error}</p>
+          ) : null}
+          {!isLoadingSlots && selectedDatePolicy.ok && slots.length === 0 ? (
             <p className="text-sm text-muted-foreground">No available slots for this staff member.</p>
           ) : null}
-          {!isLoadingSlots && slots.length > 0 ? (
+          {!isLoadingSlots && selectedDatePolicy.ok && slots.length > 0 ? (
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {slots.map((slot) => {
                 const isSelected = selectedSlot === slot.start;
@@ -135,7 +184,7 @@ export function BookingRescheduleForm({
                   >
                     <span className="flex items-center gap-2 font-medium">
                       {isSelected ? <Check className="h-4 w-4 text-primary" aria-hidden="true" /> : null}
-                      {formatTime(slot.start)}
+                      {formatTime(slot.start, bookingPolicy.timezone)}
                     </span>
                   </button>
                 );

@@ -7,6 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { createAdminBookingAction } from "@/modules/bookings/lib/actions";
+import {
+  getBookingDateBounds,
+  validateBookingDateAgainstPolicy,
+  type BookingPolicy
+} from "@/modules/bookings/lib/booking-policy";
 import type { Service } from "@/modules/services/lib/types";
 import type { StaffMember, StaffService } from "@/modules/staff/lib/types";
 
@@ -22,14 +27,11 @@ type AvailabilityResponse = {
   }[];
 };
 
-function todayDateValue() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function formatTime(value: string) {
+function formatTime(value: string, timezone: string) {
   return new Intl.DateTimeFormat("en", {
     hour: "numeric",
-    minute: "2-digit"
+    minute: "2-digit",
+    timeZone: timezone
   }).format(new Date(value));
 }
 
@@ -40,20 +42,30 @@ function staffForService(serviceId: string, staff: StaffMember[], assignments: S
 
 export function AdminManualBookingForm({
   assignments,
+  bookingPolicy,
   salonId,
   salonSlug,
   services,
   staff
 }: {
   assignments: StaffService[];
+  bookingPolicy: BookingPolicy;
   salonId: string;
   salonSlug: string;
   services: Service[];
   staff: StaffMember[];
 }) {
+  const dateBounds = useMemo(
+    () => getBookingDateBounds(bookingPolicy),
+    [bookingPolicy]
+  );
+  const dateInputMax =
+    dateBounds.maxDate && dateBounds.maxDate >= dateBounds.minDate
+      ? dateBounds.maxDate
+      : dateBounds.minDate;
   const [selectedServiceId, setSelectedServiceId] = useState(services[0]?.id ?? "");
   const [selectedStaffId, setSelectedStaffId] = useState("any");
-  const [selectedDate, setSelectedDate] = useState(todayDateValue());
+  const [selectedDate, setSelectedDate] = useState(dateBounds.minDate);
   const [selectedSlot, setSelectedSlot] = useState<{ staffId: string; start: string } | null>(null);
   const [availability, setAvailability] = useState<AvailabilityResponse["availability"]>([]);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
@@ -62,6 +74,26 @@ export function AdminManualBookingForm({
     () => staffForService(selectedServiceId, staff, assignments),
     [assignments, selectedServiceId, staff]
   );
+  const selectedDatePolicy = useMemo(
+    () =>
+      validateBookingDateAgainstPolicy({
+        date: selectedDate,
+        policy: bookingPolicy
+      }),
+    [bookingPolicy, selectedDate]
+  );
+
+  useEffect(() => {
+    setSelectedDate((currentDate) => {
+      if (currentDate < dateBounds.minDate) return dateBounds.minDate;
+      if (dateBounds.maxDate && currentDate > dateBounds.maxDate) {
+        return dateBounds.maxDate < dateBounds.minDate
+          ? dateBounds.minDate
+          : dateBounds.maxDate;
+      }
+      return currentDate;
+    });
+  }, [dateBounds.maxDate, dateBounds.minDate]);
 
   useEffect(() => {
     setSelectedStaffId("any");
@@ -71,6 +103,12 @@ export function AdminManualBookingForm({
   useEffect(() => {
     if (!selectedServiceId || !selectedDate) {
       setAvailability([]);
+      return;
+    }
+
+    if (!selectedDatePolicy.ok) {
+      setAvailability([]);
+      setIsLoadingSlots(false);
       return;
     }
 
@@ -100,7 +138,7 @@ export function AdminManualBookingForm({
       .finally(() => setIsLoadingSlots(false));
 
     return () => controller.abort();
-  }, [salonSlug, selectedDate, selectedServiceId, selectedStaffId]);
+  }, [salonSlug, selectedDate, selectedDatePolicy.ok, selectedServiceId, selectedStaffId]);
 
   const slots = availability.flatMap((item) =>
     item.slots.map((slot) => ({
@@ -164,10 +202,14 @@ export function AdminManualBookingForm({
               <label className="text-sm font-medium" htmlFor="admin-booking-date">Date</label>
               <Input
                 id="admin-booking-date"
-                min={todayDateValue()}
+                max={dateInputMax}
+                min={dateBounds.minDate}
                 type="date"
                 value={selectedDate}
-                onChange={(event) => setSelectedDate(event.target.value)}
+                onChange={(event) => {
+                  setSelectedDate(event.target.value);
+                  setSelectedSlot(null);
+                }}
               />
             </div>
           </div>
@@ -175,6 +217,11 @@ export function AdminManualBookingForm({
           <div className="space-y-2">
             <p className="text-sm font-medium">Time</p>
             {isLoadingSlots ? <p className="text-sm text-muted-foreground">Loading slots...</p> : null}
+            {!isLoadingSlots && !selectedDatePolicy.ok ? (
+              <p className="rounded-md border border-dashed border-border p-3 text-sm text-muted-foreground">
+                {selectedDatePolicy.error}
+              </p>
+            ) : null}
             {!isLoadingSlots && selectedSlotDetails ? (
               <button
                 className="flex w-full items-center justify-between rounded-md border border-primary bg-primary/10 p-3 text-left"
@@ -184,14 +231,14 @@ export function AdminManualBookingForm({
                 <span>
                   <span className="flex items-center gap-2 font-medium">
                     <Check className="h-4 w-4 text-primary" aria-hidden="true" />
-                    {formatTime(selectedSlotDetails.start)}
+                    {formatTime(selectedSlotDetails.start, bookingPolicy.timezone)}
                   </span>
                   <span className="mt-1 block text-xs text-muted-foreground">{selectedSlotDetails.staffName}</span>
                 </span>
                 <span className="text-xs text-muted-foreground">Click to change</span>
               </button>
             ) : null}
-            {!isLoadingSlots && !selectedSlotDetails && slots.length > 0 ? (
+            {!isLoadingSlots && selectedDatePolicy.ok && !selectedSlotDetails && slots.length > 0 ? (
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 {slots.map((slot) => (
                   <button
@@ -200,13 +247,13 @@ export function AdminManualBookingForm({
                     type="button"
                     onClick={() => setSelectedSlot({ staffId: slot.staffId, start: slot.start })}
                   >
-                    <span className="block font-medium">{formatTime(slot.start)}</span>
+                    <span className="block font-medium">{formatTime(slot.start, bookingPolicy.timezone)}</span>
                     <span className="mt-1 block text-xs text-muted-foreground">{slot.staffName}</span>
                   </button>
                 ))}
               </div>
             ) : null}
-            {!isLoadingSlots && slots.length === 0 ? (
+            {!isLoadingSlots && selectedDatePolicy.ok && slots.length === 0 ? (
               <p className="rounded-md border border-dashed border-border p-3 text-sm text-muted-foreground">
                 No available slots for this service and date.
               </p>

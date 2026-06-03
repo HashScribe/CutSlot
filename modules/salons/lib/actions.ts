@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { databaseUuidSchema } from "@/lib/validations/uuid";
@@ -94,6 +95,7 @@ export async function updateSalonAction(formData: FormData) {
   if (currentSalon?.slug && currentSalon.slug !== payload.slug) {
     revalidatePath(`/${currentSalon.slug}`);
   }
+  redirect("/admin/settings");
 }
 
 export async function saveWorkingHourAction(
@@ -174,6 +176,7 @@ export async function deleteWorkingHourAction(formData: FormData) {
     .eq("id", workingHourId);
 
   revalidatePath("/admin/settings");
+  redirect("/admin/settings");
 }
 
 export async function createBlockedTimeAction(formData: FormData) {
@@ -205,6 +208,7 @@ export async function createBlockedTimeAction(formData: FormData) {
   });
 
   revalidatePath("/admin/settings");
+  redirect("/admin/settings");
 }
 
 export async function deleteBlockedTimeAction(formData: FormData) {
@@ -221,4 +225,5 @@ export async function deleteBlockedTimeAction(formData: FormData) {
     .eq("id", blockedTimeId);
 
   revalidatePath("/admin/settings");
+  redirect("/admin/settings");
 }

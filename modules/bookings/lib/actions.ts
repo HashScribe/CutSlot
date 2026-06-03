@@ -6,7 +6,12 @@ import { z } from "zod";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createBookingSchema } from "@/lib/validations/booking";
+import { databaseUuidSchema } from "@/lib/validations/uuid";
 import { getAvailabilityForSalon } from "@/modules/availability/lib/queries";
+import {
+  validateBookingDateAgainstPolicy,
+  validateBookingSlotAgainstPolicy
+} from "@/modules/bookings/lib/booking-policy";
 import {
   sendCustomerBookingNotification,
   sendSalonNewBookingNotification,
@@ -30,14 +35,14 @@ const adminBookingSchema = createBookingSchema.extend({
 });
 
 const bookingStatusSchema = z.object({
-  bookingId: z.string().uuid(),
+  bookingId: databaseUuidSchema,
   status: z.enum(["pending", "confirmed", "cancelled", "completed", "no_show"])
 });
 
 const rescheduleBookingSchema = z.object({
-  bookingId: z.string().uuid(),
-  serviceId: z.string().uuid(),
-  staffId: z.string().uuid(),
+  bookingId: databaseUuidSchema,
+  serviceId: databaseUuidSchema,
+  staffId: databaseUuidSchema,
   startTime: z.string().datetime(),
   bookingDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
 });
@@ -69,6 +74,14 @@ export async function createPublicBookingAction(
     return { error: "Salon could not be found." };
   }
 
+  const datePolicy = validateBookingDateAgainstPolicy({
+    date: input.bookingDate,
+    policy: salon
+  });
+  if (!datePolicy.ok) {
+    return { error: datePolicy.error };
+  }
+
   const availability = await getAvailabilityForSalon({
     salonSlug: input.salonSlug,
     serviceId: input.serviceId,
@@ -81,6 +94,15 @@ export async function createPublicBookingAction(
 
   if (!selectedSlot) {
     return { error: "That time is no longer available. Please choose another slot." };
+  }
+
+  const slotPolicy = validateBookingSlotAgainstPolicy({
+    date: input.bookingDate,
+    policy: salon,
+    slotStart: selectedSlot.start
+  });
+  if (!slotPolicy.ok) {
+    return { error: slotPolicy.error };
   }
 
   let supabase;
@@ -209,6 +231,14 @@ export async function createAdminBookingAction(
     return { error: "Salon mismatch. Refresh and try again." };
   }
 
+  const datePolicy = validateBookingDateAgainstPolicy({
+    date: input.bookingDate,
+    policy: salon
+  });
+  if (!datePolicy.ok) {
+    return { error: datePolicy.error };
+  }
+
   const selectedSlot = await getSelectedAvailabilitySlot({
     salonSlug: salon.slug,
     serviceId: input.serviceId,
@@ -219,6 +249,15 @@ export async function createAdminBookingAction(
 
   if (!selectedSlot) {
     return { error: "That time is no longer available." };
+  }
+
+  const slotPolicy = validateBookingSlotAgainstPolicy({
+    date: input.bookingDate,
+    policy: salon,
+    slotStart: selectedSlot.start
+  });
+  if (!slotPolicy.ok) {
+    return { error: slotPolicy.error };
   }
 
   const supabase = await createSupabaseServerClient();
@@ -332,6 +371,14 @@ export async function rescheduleBookingAction(
   }
 
   const input = parsed.data;
+  const datePolicy = validateBookingDateAgainstPolicy({
+    date: input.bookingDate,
+    policy: salon
+  });
+  if (!datePolicy.ok) {
+    return { error: datePolicy.error };
+  }
+
   const selectedSlot = await getSelectedAvailabilitySlot({
     salonSlug: salon.slug,
     serviceId: input.serviceId,
@@ -342,6 +389,15 @@ export async function rescheduleBookingAction(
 
   if (!selectedSlot) {
     return { error: "That time is no longer available." };
+  }
+
+  const slotPolicy = validateBookingSlotAgainstPolicy({
+    date: input.bookingDate,
+    policy: salon,
+    slotStart: selectedSlot.start
+  });
+  if (!slotPolicy.ok) {
+    return { error: slotPolicy.error };
   }
 
   const supabase = await createSupabaseServerClient();

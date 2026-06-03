@@ -1,4 +1,5 @@
 import { BookingStepShell } from "@/modules/bookings/components/booking-step-shell";
+import { DEFAULT_BOOKING_POLICY } from "@/modules/bookings/lib/booking-policy";
 import { PublicFooter } from "@/modules/salons/components/public-footer";
 import { PublicNav } from "@/modules/salons/components/public-nav";
 import { getSalonBySlug } from "@/modules/salons/lib/queries";
@@ -36,6 +37,7 @@ export default async function PublicBookingPage({
       <BookingStepShell
         accentColor={accentColor}
         assignments={assignments}
+        bookingPolicy={salon ?? DEFAULT_BOOKING_POLICY}
         logoUrl={salon?.logoUrl}
         salonId={salon?.id ?? ""}
         salonName={salon?.name ?? salonSlug}

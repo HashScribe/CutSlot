@@ -23,6 +23,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { createPublicBookingAction } from "@/modules/bookings/lib/actions";
+import {
+  getBookingDateBounds,
+  validateBookingDateAgainstPolicy,
+  type BookingPolicy,
+} from "@/modules/bookings/lib/booking-policy";
 import type { Service } from "@/modules/services/lib/types";
 import type { StaffMember, StaffService } from "@/modules/staff/lib/types";
 
@@ -38,10 +43,6 @@ type AvailabilityResponse = {
   }[];
 };
 
-function todayDateValue() {
-  return new Date().toISOString().slice(0, 10);
-}
-
 function formatPrice(priceCents?: number | null) {
   if (priceCents == null) return "Price varies";
   return new Intl.NumberFormat("en", {
@@ -51,10 +52,11 @@ function formatPrice(priceCents?: number | null) {
   }).format(priceCents / 100);
 }
 
-function formatTime(value: string) {
+function formatTime(value: string, timezone: string) {
   return new Intl.DateTimeFormat("en", {
     hour: "numeric",
     minute: "2-digit",
+    timeZone: timezone,
   }).format(new Date(value));
 }
 
@@ -107,8 +109,10 @@ export function BookingStepShell({
   services,
   staff,
   assignments,
+  bookingPolicy,
 }: {
   accentColor: string;
+  bookingPolicy: BookingPolicy;
   initialServiceId?: string;
   logoUrl?: string | null;
   salonId: string;
@@ -122,11 +126,19 @@ export function BookingStepShell({
     services.find((service) => service.id === initialServiceId)?.id ??
     services[0]?.id ??
     "";
+  const dateBounds = useMemo(
+    () => getBookingDateBounds(bookingPolicy),
+    [bookingPolicy]
+  );
+  const dateInputMax =
+    dateBounds.maxDate && dateBounds.maxDate >= dateBounds.minDate
+      ? dateBounds.maxDate
+      : dateBounds.minDate;
   const [selectedServiceId, setSelectedServiceId] = useState(
     initialSelectedServiceId
   );
   const [selectedStaffId, setSelectedStaffId] = useState("any");
-  const [selectedDate, setSelectedDate] = useState(todayDateValue());
+  const [selectedDate, setSelectedDate] = useState(dateBounds.minDate);
   const [selectedSlot, setSelectedSlot] = useState<{
     staffId: string;
     start: string;
@@ -146,6 +158,26 @@ export function BookingStepShell({
     () => staffForService(selectedServiceId, staff, assignments),
     [assignments, selectedServiceId, staff]
   );
+  const selectedDatePolicy = useMemo(
+    () =>
+      validateBookingDateAgainstPolicy({
+        date: selectedDate,
+        policy: bookingPolicy,
+      }),
+    [bookingPolicy, selectedDate]
+  );
+
+  useEffect(() => {
+    setSelectedDate((currentDate) => {
+      if (currentDate < dateBounds.minDate) return dateBounds.minDate;
+      if (dateBounds.maxDate && currentDate > dateBounds.maxDate) {
+        return dateBounds.maxDate < dateBounds.minDate
+          ? dateBounds.minDate
+          : dateBounds.maxDate;
+      }
+      return currentDate;
+    });
+  }, [dateBounds.maxDate, dateBounds.minDate]);
 
   useEffect(() => {
     setSelectedStaffId("any");
@@ -155,6 +187,12 @@ export function BookingStepShell({
   useEffect(() => {
     if (!selectedServiceId || !selectedDate) {
       setAvailability([]);
+      return;
+    }
+
+    if (!selectedDatePolicy.ok) {
+      setAvailability([]);
+      setIsLoadingSlots(false);
       return;
     }
 
@@ -186,7 +224,13 @@ export function BookingStepShell({
       .finally(() => setIsLoadingSlots(false));
 
     return () => controller.abort();
-  }, [salonSlug, selectedDate, selectedServiceId, selectedStaffId]);
+  }, [
+    salonSlug,
+    selectedDate,
+    selectedDatePolicy.ok,
+    selectedServiceId,
+    selectedStaffId,
+  ]);
 
   const slots = availability.flatMap((item) =>
     item.slots.map((slot) => ({
@@ -275,7 +319,12 @@ export function BookingStepShell({
           </div>
           <p className="mt-2 leading-6">
             Slots update from salon hours, staff schedules, blocked times,
-            existing bookings, duration, and buffer.
+            existing bookings, duration, buffer, and booking rules.
+          </p>
+          <p className="mt-2 text-xs text-white/45">
+            {dateBounds.maxDate
+              ? `Bookings are open through ${dateBounds.maxDate}.`
+              : "Future bookings are unlimited."}
           </p>
         </div>
       </div>
@@ -441,12 +490,16 @@ export function BookingStepShell({
               <CardContent className="space-y-4">
                 <Input
                   className={cn("max-w-xs [color-scheme:dark]", fieldClassName)}
-                  min={todayDateValue()}
+                  max={dateInputMax}
+                  min={dateBounds.minDate}
                   style={fieldStyle}
                   type="date"
                   value={selectedDate}
                   onBlur={handleFieldBlur}
-                  onChange={(event) => setSelectedDate(event.target.value)}
+                  onChange={(event) => {
+                    setSelectedDate(event.target.value);
+                    setSelectedSlot(null);
+                  }}
                   onFocus={handleFieldFocus}
                 />
                 {isLoadingSlots ? (
@@ -459,7 +512,14 @@ export function BookingStepShell({
                     ))}
                   </div>
                 ) : null}
-                {!isLoadingSlots && slots.length === 0 ? (
+                {!isLoadingSlots && !selectedDatePolicy.ok ? (
+                  <p className="rounded-md border border-white/10 bg-black/20 p-4 text-sm text-white/60">
+                    {selectedDatePolicy.error}
+                  </p>
+                ) : null}
+                {!isLoadingSlots &&
+                selectedDatePolicy.ok &&
+                slots.length === 0 ? (
                   <p className="rounded-md border border-white/10 bg-black/20 p-4 text-sm text-white/60">
                     No available slots for this date.
                   </p>
@@ -481,7 +541,7 @@ export function BookingStepShell({
                           style={{ color: accentColor }}
                           aria-hidden="true"
                         />
-                        {formatTime(selectedSlotDetails.start)}
+                        {formatTime(selectedSlotDetails.start, bookingPolicy.timezone)}
                       </span>
                       <span className="mt-1 block text-xs text-white/60">
                         {selectedSlotDetails.staffName}
@@ -524,7 +584,7 @@ export function BookingStepShell({
                                 aria-hidden="true"
                               />
                             ) : null}
-                            {formatTime(slot.start)}
+                            {formatTime(slot.start, bookingPolicy.timezone)}
                           </p>
                           <p className="mt-1 text-xs text-white/60">
                             {slot.staffName}
@@ -563,7 +623,7 @@ export function BookingStepShell({
                           style={{ color: accentColor }}
                           aria-hidden="true"
                         />
-                        {formatTime(selectedSlotDetails.start)} with{" "}
+                        {formatTime(selectedSlotDetails.start, bookingPolicy.timezone)} with{" "}
                         {selectedSlotDetails.staffName}
                       </p>
                     </div>

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { databaseUuidSchema } from "@/lib/validations/uuid";
@@ -89,6 +90,7 @@ export async function createStaffAction(formData: FormData) {
   }
 
   revalidatePath("/admin/staff");
+  redirect("/admin/staff");
 }
 
 export async function updateStaffAction(formData: FormData) {
@@ -114,6 +116,7 @@ export async function updateStaffAction(formData: FormData) {
   await syncStaffServices(context.tenant.id, staffId, serviceIds);
 
   revalidatePath("/admin/staff");
+  redirect("/admin/staff");
 }
 
 export async function deleteStaffAction(formData: FormData) {
@@ -130,6 +133,7 @@ export async function deleteStaffAction(formData: FormData) {
     .eq("id", staffId);
 
   revalidatePath("/admin/staff");
+  redirect("/admin/staff");
 }
 
 export async function saveStaffWorkingHourAction(
@@ -213,4 +217,5 @@ export async function deleteStaffWorkingHourAction(formData: FormData) {
     .eq("id", workingHourId);
 
   revalidatePath("/admin/staff");
+  redirect("/admin/staff");
 }

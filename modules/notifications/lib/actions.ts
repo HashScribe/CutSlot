@@ -5,6 +5,11 @@ import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getAdminTenantContext } from "@/modules/tenants/lib/context";
 
+export type NotificationSettingsActionState = {
+  error?: string;
+  success?: string;
+};
+
 const notificationSettingsSchema = z.object({
   whatsappEnabled: z.boolean(),
   notifyCustomerOnBooking: z.boolean(),
@@ -14,11 +19,16 @@ const notificationSettingsSchema = z.object({
   salonAlertNumber: z.string().max(80).optional()
 });
 
-export async function saveNotificationSettingsAction(formData: FormData) {
+export async function saveNotificationSettingsAction(
+  _state: NotificationSettingsActionState,
+  formData: FormData
+): Promise<NotificationSettingsActionState> {
   const context = await getAdminTenantContext();
-  if (!context) return;
+  if (!context) {
+    return { error: "You need an active tenant before saving notifications." };
+  }
 
-  const parsed = notificationSettingsSchema.parse({
+  const parsed = notificationSettingsSchema.safeParse({
     whatsappEnabled: formData.get("whatsappEnabled") === "on",
     notifyCustomerOnBooking: formData.get("notifyCustomerOnBooking") === "on",
     notifySalonOnBooking: formData.get("notifySalonOnBooking") === "on",
@@ -26,23 +36,40 @@ export async function saveNotificationSettingsAction(formData: FormData) {
     fromNumber: String(formData.get("fromNumber") ?? "").trim() || undefined,
     salonAlertNumber: String(formData.get("salonAlertNumber") ?? "").trim() || undefined
   });
+
+  if (!parsed.success) {
+    return {
+      error: parsed.error.issues[0]?.message ?? "Check the notification settings."
+    };
+  }
+
+  const payload = parsed.data;
   const supabase = await createSupabaseServerClient();
 
-  await supabase.from("notification_settings").upsert({
+  const { error: notificationError } = await supabase.from("notification_settings").upsert({
     tenant_id: context.tenant.id,
-    whatsapp_enabled: parsed.whatsappEnabled,
-    notify_customer_on_booking: parsed.notifyCustomerOnBooking,
-    notify_salon_on_booking: parsed.notifySalonOnBooking,
+    whatsapp_enabled: payload.whatsappEnabled,
+    notify_customer_on_booking: payload.notifyCustomerOnBooking,
+    notify_salon_on_booking: payload.notifySalonOnBooking,
     updated_at: new Date().toISOString()
   });
 
-  await supabase.from("whatsapp_settings").upsert({
+  if (notificationError) {
+    return { error: "Could not save notification settings." };
+  }
+
+  const { error: whatsappError } = await supabase.from("whatsapp_settings").upsert({
     tenant_id: context.tenant.id,
-    provider: parsed.provider,
-    from_number: parsed.fromNumber ?? null,
-    salon_alert_number: parsed.salonAlertNumber ?? null,
+    provider: payload.provider,
+    from_number: payload.fromNumber ?? null,
+    salon_alert_number: payload.salonAlertNumber ?? null,
     updated_at: new Date().toISOString()
   });
+
+  if (whatsappError) {
+    return { error: "Could not save WhatsApp settings." };
+  }
 
   revalidatePath("/admin/settings");
+  return { success: "Notification settings saved." };
 }

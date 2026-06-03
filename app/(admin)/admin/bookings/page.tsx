@@ -26,6 +26,7 @@ export default async function BookingsPage() {
         <AdminBookingsPanel
           assignments={assignments}
           bookings={bookings}
+          bookingPolicy={salon}
           salonId={salon.id}
           salonSlug={salon.slug}
           services={services}

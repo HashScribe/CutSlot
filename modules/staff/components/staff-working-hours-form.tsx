@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { SubmitButton } from "@/components/shared/submit-button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,7 @@ export function StaffWorkingHoursForm({
   staff: StaffMember[];
   workingHours: WorkingHour[];
 }) {
+  const router = useRouter();
   const initialStaffId = staff[0]?.id ?? "";
   const [selectedStaffId, setSelectedStaffId] = useState(initialStaffId);
   const [selectedWeekday, setSelectedWeekday] = useState(1);
@@ -47,6 +49,12 @@ export function StaffWorkingHoursForm({
     if (state.staffId) setSelectedStaffId(state.staffId);
     if (typeof state.weekday === "number") setSelectedWeekday(state.weekday);
   }, [state.staffId, state.weekday]);
+
+  useEffect(() => {
+    if (state.success) {
+      router.refresh();
+    }
+  }, [router, state.success]);
 
   if (staff.length === 0) {
     return <p className="text-sm text-muted-foreground">Add staff before setting staff-specific working hours.</p>;

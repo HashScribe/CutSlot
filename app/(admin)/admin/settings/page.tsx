@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/shared/page-header";
+import { BookingPolicySettingsPanel } from "@/modules/bookings/components/booking-policy-settings-panel";
 import { NotificationSettingsPanel } from "@/modules/notifications/components/notification-settings-panel";
 import { getNotificationSettingsForTenant, listNotificationLogsForTenant } from "@/modules/notifications/lib/queries";
 import { NoSalonState } from "@/modules/salons/components/no-salon-state";
@@ -26,10 +27,11 @@ export default async function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Settings" description="Configure salon identity, public branding, working hours, and WhatsApp settings." />
+      <PageHeader title="Settings" description="Configure salon identity, booking rules, working hours, and WhatsApp settings." />
       {salon ? (
         <>
           <SalonBrandingPanel salon={salon} workingHours={workingHours} />
+          <BookingPolicySettingsPanel salon={salon} />
           <BlockedTimesPanel salonId={salon.id} staff={staff} blockedTimes={blockedTimes} />
           {notificationData ? (
             <NotificationSettingsPanel

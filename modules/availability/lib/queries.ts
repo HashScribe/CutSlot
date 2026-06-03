@@ -1,6 +1,10 @@
 import { cache } from "react";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  isBookingSlotAllowed,
+  validateBookingDateAgainstPolicy
+} from "@/modules/bookings/lib/booking-policy";
 import { getSalonBySlug } from "@/modules/salons/lib/queries";
 import { generateAvailabilitySlots } from "./slot-generator";
 import { getUtcDayWindow, getWeekday, timeOnDate } from "./date-windows";
@@ -68,6 +72,10 @@ export const getAvailabilityForSalon = cache(
     const salon = await getSalonBySlug(salonSlug);
     if (!salon) return [];
 
+    const now = new Date();
+    const datePolicy = validateBookingDateAgainstPolicy({ date, now, policy: salon });
+    if (!datePolicy.ok) return [];
+
     const supabase = await createAvailabilityClient();
     const { data: serviceData } = await supabase
       .from("services")
@@ -99,7 +107,7 @@ export const getAvailabilityForSalon = cache(
 
     if (staff.length === 0) return [];
 
-    const { start, end } = getUtcDayWindow(date);
+    const { start, end } = getUtcDayWindow(date, salon.timezone);
     const weekday = getWeekday(date);
     const staffIds = staff.map((member) => member.id);
 
@@ -141,8 +149,8 @@ export const getAvailabilityForSalon = cache(
       const staffHours = workingHours.filter((row) => row.staff_id === member.id);
       const applicableHours = staffHours.length > 0 ? staffHours : salonHours;
       const workingWindows = applicableHours.map((row) => ({
-        start: timeOnDate(date, row.start_time),
-        end: timeOnDate(date, row.end_time)
+        start: timeOnDate(date, row.start_time, salon.timezone),
+        end: timeOnDate(date, row.end_time, salon.timezone)
       }));
       const blockedWindows = blockedTimes
         .filter((row) => row.staff_id === null || row.staff_id === member.id)
@@ -164,10 +172,19 @@ export const getAvailabilityForSalon = cache(
           durationMinutes: service.duration_minutes,
           bufferMinutes: service.buffer_minutes,
           slotIntervalMinutes: salon.slotIntervalMinutes
-        }).map((slot) => ({
-          ...slot,
-          staffId: member.id
-        }))
+        })
+          .filter((slot) =>
+            isBookingSlotAllowed({
+              date,
+              now,
+              policy: salon,
+              slotStart: slot.start
+            })
+          )
+          .map((slot) => ({
+            ...slot,
+            staffId: member.id
+          }))
       };
     });
   }

@@ -1,10 +1,19 @@
+"use client";
+
+import { useActionState, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Bell, MessageCircle } from "lucide-react";
 import { SubmitButton } from "@/components/shared/submit-button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { saveNotificationSettingsAction } from "@/modules/notifications/lib/actions";
-import type { NotificationLog, NotificationSettings, WhatsAppSettings } from "@/modules/notifications/lib/types";
+import type {
+  NotificationLog,
+  NotificationSettings,
+  WhatsAppProviderName,
+  WhatsAppSettings
+} from "@/modules/notifications/lib/types";
 
 const statusVariant = {
   sent: "success",
@@ -29,6 +38,37 @@ export function NotificationSettingsPanel({
   notificationSettings: NotificationSettings;
   whatsappSettings: WhatsAppSettings;
 }) {
+  const router = useRouter();
+  const [state, formAction] = useActionState(saveNotificationSettingsAction, {});
+  const [whatsappEnabled, setWhatsappEnabled] = useState(notificationSettings.whatsappEnabled);
+  const [notifyCustomer, setNotifyCustomer] = useState(notificationSettings.notifyCustomerOnBooking);
+  const [notifySalon, setNotifySalon] = useState(notificationSettings.notifySalonOnBooking);
+  const [provider, setProvider] = useState<WhatsAppProviderName>(whatsappSettings.provider);
+  const [fromNumber, setFromNumber] = useState(whatsappSettings.fromNumber ?? "");
+  const [salonAlertNumber, setSalonAlertNumber] = useState(whatsappSettings.salonAlertNumber ?? "");
+
+  useEffect(() => {
+    setWhatsappEnabled(notificationSettings.whatsappEnabled);
+    setNotifyCustomer(notificationSettings.notifyCustomerOnBooking);
+    setNotifySalon(notificationSettings.notifySalonOnBooking);
+    setProvider(whatsappSettings.provider);
+    setFromNumber(whatsappSettings.fromNumber ?? "");
+    setSalonAlertNumber(whatsappSettings.salonAlertNumber ?? "");
+  }, [
+    notificationSettings.notifyCustomerOnBooking,
+    notificationSettings.notifySalonOnBooking,
+    notificationSettings.whatsappEnabled,
+    whatsappSettings.fromNumber,
+    whatsappSettings.provider,
+    whatsappSettings.salonAlertNumber
+  ]);
+
+  useEffect(() => {
+    if (state.success) {
+      router.refresh();
+    }
+  }, [router, state.success]);
+
   return (
     <div className="grid gap-5 lg:grid-cols-[420px_1fr]">
       <Card>
@@ -39,13 +79,14 @@ export function NotificationSettingsPanel({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <form action={saveNotificationSettingsAction} className="space-y-4">
+          <form action={formAction} className="space-y-4">
             <label className="flex items-start gap-3 rounded-md border border-border p-3 text-sm">
               <input
                 className="mt-0.5 h-4 w-4 accent-primary"
-                defaultChecked={notificationSettings.whatsappEnabled}
+                checked={whatsappEnabled}
                 name="whatsappEnabled"
                 type="checkbox"
+                onChange={(event) => setWhatsappEnabled(event.target.checked)}
               />
               <span>
                 <span className="block font-medium">Enable WhatsApp notifications</span>
@@ -58,18 +99,20 @@ export function NotificationSettingsPanel({
             <label className="flex items-center gap-2 text-sm text-muted-foreground">
               <input
                 className="h-4 w-4 accent-primary"
-                defaultChecked={notificationSettings.notifyCustomerOnBooking}
+                checked={notifyCustomer}
                 name="notifyCustomerOnBooking"
                 type="checkbox"
+                onChange={(event) => setNotifyCustomer(event.target.checked)}
               />
               Notify customers for booking confirmations, reschedules, and status changes
             </label>
             <label className="flex items-center gap-2 text-sm text-muted-foreground">
               <input
                 className="h-4 w-4 accent-primary"
-                defaultChecked={notificationSettings.notifySalonOnBooking}
+                checked={notifySalon}
                 name="notifySalonOnBooking"
                 type="checkbox"
+                onChange={(event) => setNotifySalon(event.target.checked)}
               />
               Notify salon on new bookings
             </label>
@@ -80,9 +123,10 @@ export function NotificationSettingsPanel({
               </label>
               <select
                 className="h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm"
-                defaultValue={whatsappSettings.provider}
                 id="whatsapp-provider"
                 name="provider"
+                value={provider}
+                onChange={(event) => setProvider(event.target.value as WhatsAppProviderName)}
               >
                 <option value="disabled">Disabled</option>
                 <option value="twilio">Twilio WhatsApp</option>
@@ -95,10 +139,11 @@ export function NotificationSettingsPanel({
                 From number
               </label>
               <Input
-                defaultValue={whatsappSettings.fromNumber ?? ""}
                 id="whatsapp-from-number"
                 name="fromNumber"
                 placeholder="+14155238886"
+                value={fromNumber}
+                onChange={(event) => setFromNumber(event.target.value)}
               />
               <p className="text-xs text-muted-foreground">
                 Twilio uses a WhatsApp sender number. Meta uses the phone number ID from environment.
@@ -110,12 +155,16 @@ export function NotificationSettingsPanel({
                 Salon alert number
               </label>
               <Input
-                defaultValue={whatsappSettings.salonAlertNumber ?? ""}
                 id="salon-alert-number"
                 name="salonAlertNumber"
                 placeholder="+94770000000"
+                value={salonAlertNumber}
+                onChange={(event) => setSalonAlertNumber(event.target.value)}
               />
             </div>
+
+            {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
+            {state.success ? <p className="text-sm text-emerald-400">{state.success}</p> : null}
 
             <SubmitButton className="w-full">Save notification settings</SubmitButton>
           </form>

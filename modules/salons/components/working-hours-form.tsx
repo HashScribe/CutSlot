@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { SubmitButton } from "@/components/shared/submit-button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,7 @@ export function WorkingHoursForm({
   salonId: string;
   workingHours: WorkingHour[];
 }) {
+  const router = useRouter();
   const hoursByWeekday = useMemo(
     () => new Map(workingHours.map((item) => [item.weekday, item])),
     [workingHours]
@@ -43,6 +45,12 @@ export function WorkingHoursForm({
       setSelectedWeekday(state.weekday);
     }
   }, [state.weekday]);
+
+  useEffect(() => {
+    if (state.success) {
+      router.refresh();
+    }
+  }, [router, state.success]);
 
   return (
     <div className="space-y-4">

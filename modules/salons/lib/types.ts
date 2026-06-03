@@ -11,4 +11,8 @@ export type Salon = {
   accentColor: string;
   themeMode: SalonThemeMode;
   slotIntervalMinutes: number;
+  bookingWindowDays: number | null;
+  bookingWindowOpensAt: string;
+  minimumNoticeMinutes: number;
+  timezone: string;
 };

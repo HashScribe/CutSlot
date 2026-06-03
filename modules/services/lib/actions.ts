@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getAdminTenantContext } from "@/modules/tenants/lib/context";
@@ -54,6 +55,7 @@ export async function createServiceAction(formData: FormData) {
   });
 
   revalidatePath("/admin/services");
+  redirect("/admin/services");
 }
 
 export async function updateServiceAction(formData: FormData) {
@@ -79,6 +81,7 @@ export async function updateServiceAction(formData: FormData) {
     .eq("id", serviceId);
 
   revalidatePath("/admin/services");
+  redirect("/admin/services");
 }
 
 export async function deleteServiceAction(formData: FormData) {
@@ -96,4 +99,5 @@ export async function deleteServiceAction(formData: FormData) {
 
   revalidatePath("/admin/services");
   revalidatePath("/admin/staff");
+  redirect("/admin/services");
 }
