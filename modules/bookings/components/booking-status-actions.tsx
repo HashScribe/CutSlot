@@ -4,8 +4,8 @@ import { updateBookingStatusAction } from "@/modules/bookings/lib/actions";
 
 const statusActions: Partial<Record<BookingStatus, { label: string; status: BookingStatus; variant?: "secondary" | "destructive" }[]>> = {
   pending: [
-    { label: "Confirm", status: "confirmed", variant: "secondary" },
-    { label: "Cancel", status: "cancelled", variant: "destructive" }
+    { label: "Approve", status: "confirmed", variant: "secondary" },
+    { label: "Decline", status: "cancelled", variant: "destructive" }
   ],
   confirmed: [
     { label: "Complete", status: "completed", variant: "secondary" },

@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { hasSupabaseConfig } from "@/lib/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { Salon } from "./types";
+import type { BookingApprovalMode, Salon } from "./types";
 
 type SalonRow = {
   id: string;
@@ -16,6 +16,7 @@ type SalonRow = {
   slot_interval_minutes: number;
   booking_window_days: number | null;
   booking_window_opens_at: string;
+  booking_approval_mode: BookingApprovalMode;
   minimum_notice_minutes: number;
   timezone: string;
 };
@@ -33,6 +34,7 @@ const salonSelect = `
   slot_interval_minutes,
   booking_window_days,
   booking_window_opens_at,
+  booking_approval_mode,
   minimum_notice_minutes,
   timezone
 `;
@@ -51,6 +53,7 @@ function mapSalon(row: SalonRow): Salon {
     slotIntervalMinutes: row.slot_interval_minutes,
     bookingWindowDays: row.booking_window_days,
     bookingWindowOpensAt: row.booking_window_opens_at.slice(0, 5),
+    bookingApprovalMode: row.booking_approval_mode,
     minimumNoticeMinutes: row.minimum_notice_minutes,
     timezone: row.timezone
   };

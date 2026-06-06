@@ -17,6 +17,7 @@ export type BookingPolicyActionState = {
 
 const bookingPolicySchema = z.object({
   salonId: databaseUuidSchema,
+  bookingApprovalMode: z.enum(["auto", "manual"]),
   bookingWindowDays: z
     .number()
     .int()
@@ -46,6 +47,7 @@ export async function saveBookingPolicyAction(
   const isUnlimited = formData.get("unlimitedFutureBookings") === "on";
   const parsed = bookingPolicySchema.safeParse({
     salonId: formData.get("salonId"),
+    bookingApprovalMode: formData.get("bookingApprovalMode"),
     bookingWindowDays: isUnlimited
       ? null
       : Number(formData.get("bookingWindowDays") ?? 0),
@@ -78,6 +80,7 @@ export async function saveBookingPolicyAction(
     .update({
       booking_window_days: payload.bookingWindowDays,
       booking_window_opens_at: payload.bookingWindowOpensAt,
+      booking_approval_mode: payload.bookingApprovalMode,
       minimum_notice_minutes: payload.minimumNoticeMinutes,
       timezone: payload.timezone,
       updated_at: new Date().toISOString()

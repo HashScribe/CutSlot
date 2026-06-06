@@ -1,6 +1,7 @@
 import { CalendarDays, Clock3, Phone, Scissors, UserRound } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { AdminManualBookingForm } from "@/modules/bookings/components/admin-manual-booking-form";
 import { BookingRescheduleForm } from "@/modules/bookings/components/booking-reschedule-form";
 import { BookingStatusActions } from "@/modules/bookings/components/booking-status-actions";
@@ -82,7 +83,7 @@ export function AdminBookingsPanel({
         ) : null}
 
         {bookings.map((booking) => (
-          <Card key={booking.id}>
+          <Card key={booking.id} className={cn(booking.status === "pending" && "border-primary/60")}>
             <CardHeader>
               <CardTitle className="flex flex-wrap items-start justify-between gap-3">
                 <span>{booking.customerName}</span>
@@ -118,6 +119,11 @@ export function AdminBookingsPanel({
               {booking.notes ? (
                 <p className="rounded-md border border-border bg-secondary/30 p-3 text-sm text-muted-foreground">
                   {booking.notes}
+                </p>
+              ) : null}
+              {booking.status === "pending" ? (
+                <p className="rounded-md border border-primary/30 bg-primary/10 p-3 text-sm text-muted-foreground">
+                  This booking request is waiting for admin approval.
                 </p>
               ) : null}
 

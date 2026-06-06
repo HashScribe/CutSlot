@@ -5,6 +5,7 @@ import type { BookingStatus } from "@/modules/bookings/lib/types";
 export type BookingNotificationEvent =
   | "created"
   | "confirmed"
+  | "declined"
   | "cancelled"
   | "completed"
   | "no_show"
@@ -88,6 +89,10 @@ function buildCustomerMessage(event: BookingNotificationEvent, booking: BookingN
   const time = formatDateTime(booking.start_time);
 
   if (event === "created") {
+    if (booking.status === "pending") {
+      return `Hi ${customerName}, your booking request at ${salonName} for ${time} with ${staffName} for ${serviceName} has been received. The salon will confirm it soon.`;
+    }
+
     return `Hi ${customerName}, your booking at ${salonName} is confirmed for ${time} with ${staffName} for ${serviceName}.`;
   }
 
@@ -97,6 +102,10 @@ function buildCustomerMessage(event: BookingNotificationEvent, booking: BookingN
 
   if (event === "cancelled") {
     return `Hi ${customerName}, your booking at ${salonName} for ${time} has been cancelled.`;
+  }
+
+  if (event === "declined") {
+    return `Hi ${customerName}, your booking request at ${salonName} for ${time} was declined. Please contact the salon to choose another time.`;
   }
 
   if (event === "rescheduled") {
@@ -116,7 +125,11 @@ function buildSalonMessage(booking: BookingNotificationRow) {
   const staff = firstRelation(booking.staff);
   const salon = firstRelation(booking.salons);
 
-  return `New booking at ${salon?.name ?? "your salon"}: ${customer?.name ?? "Customer"} for ${service?.name ?? "a service"} with ${staff?.display_name ?? "staff"} on ${formatDateTime(booking.start_time)}. Phone: ${customer?.phone ?? "not provided"}.`;
+  if (booking.status === "pending") {
+    return `New booking request at ${salon?.name ?? "your salon"}: ${customer?.name ?? "Customer"} for ${service?.name ?? "a service"} with ${staff?.display_name ?? "staff"} on ${formatDateTime(booking.start_time)}. Phone: ${customer?.phone ?? "not provided"}. Approval is required.`;
+  }
+
+  return `New confirmed booking at ${salon?.name ?? "your salon"}: ${customer?.name ?? "Customer"} for ${service?.name ?? "a service"} with ${staff?.display_name ?? "staff"} on ${formatDateTime(booking.start_time)}. Phone: ${customer?.phone ?? "not provided"}.`;
 }
 
 async function insertLog({

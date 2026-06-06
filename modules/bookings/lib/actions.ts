@@ -134,6 +134,7 @@ export async function createPublicBookingAction(
     return { error: "Could not save customer details." };
   }
 
+  const bookingStatus = salon.bookingApprovalMode === "manual" ? "pending" : "confirmed";
   const { data: booking, error: bookingError } = await supabase
     .from("bookings")
     .insert({
@@ -144,7 +145,7 @@ export async function createPublicBookingAction(
       service_id: input.serviceId,
       start_time: selectedSlot.start.toISOString(),
       end_time: selectedSlot.end.toISOString(),
-      status: "confirmed",
+      status: bookingStatus,
       notes: input.notes ?? null
     })
     .select("id")
@@ -159,7 +160,7 @@ export async function createPublicBookingAction(
     await sendSalonNewBookingNotification({ bookingId: booking.id });
   }
 
-  redirect(`/${input.salonSlug}/booking-confirmed`);
+  redirect(`/${input.salonSlug}/booking-confirmed?status=${bookingStatus}`);
 }
 
 export type AdminBookingActionState = {
@@ -321,6 +322,13 @@ export async function updateBookingStatusAction(formData: FormData) {
   if (!parsed.success) return;
 
   const supabase = await createSupabaseServerClient();
+  const { data: currentBooking } = await supabase
+    .from("bookings")
+    .select("status")
+    .eq("tenant_id", context.tenant.id)
+    .eq("id", parsed.data.bookingId)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("bookings")
     .update({
@@ -338,7 +346,11 @@ export async function updateBookingStatusAction(formData: FormData) {
     completed: "completed",
     no_show: "no_show"
   };
-  const event = notificationEvent[parsed.data.status];
+  const previousStatus = currentBooking?.status as BookingStatus | undefined;
+  const event =
+    previousStatus === "pending" && parsed.data.status === "cancelled"
+      ? "declined"
+      : notificationEvent[parsed.data.status];
 
   if (event) {
     await sendCustomerBookingNotification({ bookingId: parsed.data.bookingId, event });

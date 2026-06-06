@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 
 export function BookingPolicySettingsPanel({ salon }: { salon: Salon }) {
   const router = useRouter();
+  const [bookingApprovalMode, setBookingApprovalMode] = useState(salon.bookingApprovalMode);
   const [isUnlimited, setIsUnlimited] = useState(salon.bookingWindowDays === null);
   const [bookingWindowDays, setBookingWindowDays] = useState(String(salon.bookingWindowDays ?? 30));
   const [bookingWindowOpensAt, setBookingWindowOpensAt] = useState(normalizeBookingPolicyTime(salon.bookingWindowOpensAt));
@@ -26,12 +27,14 @@ export function BookingPolicySettingsPanel({ salon }: { salon: Salon }) {
   const [state, formAction] = useActionState(saveBookingPolicyAction, {});
 
   useEffect(() => {
+    setBookingApprovalMode(salon.bookingApprovalMode);
     setIsUnlimited(salon.bookingWindowDays === null);
     setBookingWindowDays(String(salon.bookingWindowDays ?? 30));
     setBookingWindowOpensAt(normalizeBookingPolicyTime(salon.bookingWindowOpensAt));
     setMinimumNoticeMinutes(String(salon.minimumNoticeMinutes));
     setTimezone(salon.timezone);
   }, [
+    salon.bookingApprovalMode,
     salon.bookingWindowDays,
     salon.bookingWindowOpensAt,
     salon.minimumNoticeMinutes,
@@ -55,6 +58,44 @@ export function BookingPolicySettingsPanel({ salon }: { salon: Salon }) {
       <CardContent>
         <form action={formAction} className="grid gap-4 lg:grid-cols-2">
           <input name="salonId" type="hidden" value={salon.id} />
+
+          <div className="space-y-3 lg:col-span-2">
+            <p className="text-sm font-medium">Booking approval</p>
+            <div className="grid gap-3 md:grid-cols-2">
+              <label className="flex items-start gap-3 rounded-md border border-border p-3 text-sm">
+                <input
+                  className="mt-0.5 h-4 w-4 accent-primary"
+                  checked={bookingApprovalMode === "auto"}
+                  name="bookingApprovalMode"
+                  type="radio"
+                  value="auto"
+                  onChange={() => setBookingApprovalMode("auto")}
+                />
+                <span>
+                  <span className="block font-medium">Auto approve</span>
+                  <span className="mt-1 block text-muted-foreground">
+                    Customer bookings are confirmed immediately.
+                  </span>
+                </span>
+              </label>
+              <label className="flex items-start gap-3 rounded-md border border-border p-3 text-sm">
+                <input
+                  className="mt-0.5 h-4 w-4 accent-primary"
+                  checked={bookingApprovalMode === "manual"}
+                  name="bookingApprovalMode"
+                  type="radio"
+                  value="manual"
+                  onChange={() => setBookingApprovalMode("manual")}
+                />
+                <span>
+                  <span className="block font-medium">Require approval</span>
+                  <span className="mt-1 block text-muted-foreground">
+                    New customer bookings stay pending until an admin approves them.
+                  </span>
+                </span>
+              </label>
+            </div>
+          </div>
 
           <label className="flex items-start gap-3 rounded-md border border-border p-3 text-sm lg:col-span-2">
             <input

@@ -1,4 +1,5 @@
 export type SalonThemeMode = "light" | "dark";
+export type BookingApprovalMode = "auto" | "manual";
 
 export type Salon = {
   id: string;
@@ -13,6 +14,7 @@ export type Salon = {
   slotIntervalMinutes: number;
   bookingWindowDays: number | null;
   bookingWindowOpensAt: string;
+  bookingApprovalMode: BookingApprovalMode;
   minimumNoticeMinutes: number;
   timezone: string;
 };
