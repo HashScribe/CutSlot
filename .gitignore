@@ -5,6 +5,7 @@ out
 coverage
 .env
 .env.local
+.env.staging
 .env.development.local
 .env.test.local
 .env.production.local
